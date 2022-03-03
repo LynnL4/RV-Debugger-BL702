@@ -36,19 +36,19 @@ uint8_t uart_rx_mem[UART_RX_RINGBUFFER_SIZE] __attribute__((section(".system_ram
 
 uint8_t src_buffer[UART_TX_DMA_SIZE] __attribute__((section(".tcm_code")));
 
-struct device* uart1;
+struct device* uart0;
 struct device* dma_ch2;
 
 Ring_Buffer_Type usb_rx_rb;
-Ring_Buffer_Type uart1_rx_rb;
+Ring_Buffer_Type uart0_rx_rb;
 
 void uart_irq_callback(struct device *dev, void *args, uint32_t size, uint32_t state)
 {
     if (state == UART_EVENT_RX_FIFO)
     {
-        if (size && size < Ring_Buffer_Get_Empty_Length(&uart1_rx_rb))
+        if (size && size < Ring_Buffer_Get_Empty_Length(&uart0_rx_rb))
         {
-            Ring_Buffer_Write(&uart1_rx_rb, (uint8_t *)args, size);
+            Ring_Buffer_Write(&uart0_rx_rb, (uint8_t *)args, size);
         }
         else
         {
@@ -57,9 +57,9 @@ void uart_irq_callback(struct device *dev, void *args, uint32_t size, uint32_t s
     }
     else if (state == UART_EVENT_RTO)
     {
-        if (size && size < Ring_Buffer_Get_Empty_Length(&uart1_rx_rb))
+        if (size && size < Ring_Buffer_Get_Empty_Length(&uart0_rx_rb))
         {
-            Ring_Buffer_Write(&uart1_rx_rb, (uint8_t *)args, size);
+            Ring_Buffer_Write(&uart0_rx_rb, (uint8_t *)args, size);
         }
         else
         {
@@ -71,17 +71,17 @@ void uart_irq_callback(struct device *dev, void *args, uint32_t size, uint32_t s
         MSG("ov\r\n");
     }
 }
-void uart1_init(void)
+void uart0_init(void)
 {
-    uart_register(UART1_INDEX, "uart1", DEVICE_OFLAG_RDWR);
-    uart1 = device_find("uart1");
+    uart_register(UART0_INDEX, "uart0", DEVICE_OFLAG_RDWR);
+    uart0 = device_find("uart0");
 
-    if (uart1)
+    if (uart0)
     {
-        device_open(uart1, DEVICE_OFLAG_DMA_TX | DEVICE_OFLAG_INT_RX); //uart0 tx dma mode
-        device_control(uart1, DEVICE_CTRL_SUSPEND, NULL);
-        device_set_callback(uart1, uart_irq_callback);
-        device_control(uart1, DEVICE_CTRL_SET_INT, (void *)(UART_RX_FIFO_IT | UART_RTO_IT));
+        device_open(uart0, DEVICE_OFLAG_DMA_TX | DEVICE_OFLAG_INT_RX); //uart0 tx dma mode
+        device_control(uart0, DEVICE_CTRL_SUSPEND, NULL);
+        device_set_callback(uart0, uart_irq_callback);
+        device_control(uart0, DEVICE_CTRL_SET_INT, (void *)(UART_RX_FIFO_IT | UART_RTO_IT));
     }
 
     dma_register(DMA0_CH2_INDEX, "ch2", DEVICE_OFLAG_RDWR);
@@ -92,11 +92,11 @@ void uart1_init(void)
         //device_set_callback(dma_ch2, NULL);
         //device_control(dma_ch2, DEVICE_CTRL_SET_INT, NULL);
     }
-    //device_control(uart1, DEVICE_CTRL_ATTACH_TX_DMA, dma_ch2);
+    //device_control(uart0, DEVICE_CTRL_ATTACH_TX_DMA, dma_ch2);
 
 }
 
-void uart1_config(uint32_t baudrate, uart_databits_t databits, uart_parity_t parity, uart_stopbits_t stopbits)
+void uart0_config(uint32_t baudrate, uart_databits_t databits, uart_parity_t parity, uart_stopbits_t stopbits)
 {
     uart_param_cfg_t cfg;
     cfg.baudrate = baudrate;
@@ -120,41 +120,41 @@ void uart1_config(uint32_t baudrate, uart_databits_t databits, uart_parity_t par
         cfg.databits = UART_DATA_LEN_8;
     }
 
-    device_control(uart1, DEVICE_CTRL_CONFIG, &cfg);
+    device_control(uart0, DEVICE_CTRL_CONFIG, &cfg);
 }
 
-static uint8_t uart1_dtr;
-static uint8_t uart1_rts;
+static uint8_t uart0_dtr;
+static uint8_t uart0_rts;
 
-void uart1_set_dtr_rts(uint8_t dtr, uint8_t rts)
+void uart0_set_dtr_rts(uint8_t dtr, uint8_t rts)
 {
-    uart1_dtr = dtr;
-    uart1_rts = rts;
+    uart0_dtr = dtr;
+    uart0_rts = rts;
 }
 
-void uart1_dtr_init(void)
+void uart0_dtr_init(void)
 {
-    gpio_set_mode(uart1_dtr, GPIO_OUTPUT_MODE);
+    gpio_set_mode(uart0_dtr, GPIO_OUTPUT_MODE);
 }
-void uart1_rts_init(void)
+void uart0_rts_init(void)
 {
-    gpio_set_mode(uart1_rts, GPIO_OUTPUT_MODE);
+    gpio_set_mode(uart0_rts, GPIO_OUTPUT_MODE);
 }
-void uart1_dtr_deinit(void)
+void uart0_dtr_deinit(void)
 {
-    gpio_set_mode(uart1_dtr, GPIO_INPUT_MODE);
+    gpio_set_mode(uart0_dtr, GPIO_INPUT_MODE);
 }
-void uart1_rts_deinit(void)
+void uart0_rts_deinit(void)
 {
-    gpio_set_mode(uart1_rts, GPIO_INPUT_MODE);
+    gpio_set_mode(uart0_rts, GPIO_INPUT_MODE);
 }
 void dtr_pin_set(uint8_t status)
 {
-    gpio_write(uart1_dtr, status);
+    gpio_write(uart0_dtr, status);
 }
 void rts_pin_set(uint8_t status)
 {
-    gpio_write(uart1_rts, status);
+    gpio_write(uart0_rts, status);
 }
 void ringbuffer_lock()
 {
@@ -173,7 +173,7 @@ void uart_ringbuffer_init(void)
 
     /* init ring_buffer */
     Ring_Buffer_Init(&usb_rx_rb, usb_rx_mem, USB_OUT_RINGBUFFER_SIZE, ringbuffer_lock, ringbuffer_unlock);
-    Ring_Buffer_Init(&uart1_rx_rb, uart_rx_mem, UART_RX_RINGBUFFER_SIZE, ringbuffer_lock, ringbuffer_unlock);
+    Ring_Buffer_Init(&uart0_rx_rb, uart_rx_mem, UART_RX_RINGBUFFER_SIZE, ringbuffer_lock, ringbuffer_unlock);
 }
 
 static dma_control_data_t uart_dma_ctrl_cfg =
@@ -193,9 +193,14 @@ static dma_control_data_t uart_dma_ctrl_cfg =
 static dma_lli_ctrl_t uart_lli_list = 
 {
     .src_addr = (uint32_t)src_buffer,
-    .dst_addr = DMA_ADDR_UART1_TDR,
+    .dst_addr = DMA_ADDR_UART0_TDR,
     .nextlli = 0
 };
+
+enum uart_index_type board_get_debug_uart_index(void)
+{
+    return 1;
+}
 
 extern void led_toggle(uint8_t idx);
 void uart_send_from_ringbuffer(void)

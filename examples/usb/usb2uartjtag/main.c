@@ -84,7 +84,7 @@ void led_toggle(uint8_t idx)
 /************************  API for usbd_ftdi  ************************/
 void usbd_ftdi_set_line_coding(uint32_t baudrate, uint8_t databits, uint8_t parity, uint8_t stopbits)
 {
-    uart1_config(baudrate, databits, parity, stopbits);
+    uart0_config(baudrate, databits, parity, stopbits);
 }
 
 void usbd_ftdi_set_dtr(bool dtr)
@@ -241,7 +241,7 @@ void usbd_cdc_acm_bulk_out(uint8_t ep)
 //UART -> USB in
 void usbd_cdc_acm_bulk_in(uint8_t ep)
 {
-    usb_dc_ftdi_send_from_ringbuffer(usb_fs, &uart1_rx_rb, ep);
+    usb_dc_ftdi_send_from_ringbuffer(usb_fs, &uart0_rx_rb, ep);
 }
 
 
@@ -294,10 +294,10 @@ int main(void)
     GLB_Select_Internal_Flash();
     bflb_platform_init(0);
     uart_ringbuffer_init();
-    uart1_init();
-    uart1_set_dtr_rts(UART_DTR_PIN,UART_RTS_PIN);
-    uart1_dtr_init();
-    uart1_rts_init();
+    uart0_init();
+    uart0_set_dtr_rts(UART_DTR_PIN,UART_RTS_PIN);
+    uart0_dtr_init();
+    uart0_rts_init();
     led_gpio_init();
 	led_set(0, 1);	//led0 for RX/TX indication
 	led_set(1, 1);	//led1 for Power indication
